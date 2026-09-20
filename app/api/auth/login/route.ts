@@ -1,71 +1,39 @@
-import { supabase } from '@/lib/supabase'
-import { signToken } from '@/lib/jwt'
+import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+)
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { email, password } = body
+    const { email, password } = await req.json()
 
     if (!email || !password) {
       return NextResponse.json(
-        { error: 'Email y password requeridos' },
+        { error: 'Email y contraseña son requeridos' },
         { status: 400 }
       )
     }
 
-    // Usar autenticación de Supabase
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      password
+      password,
     })
 
-    if (authError || !authData?.user) {
-      return NextResponse.json(
-        { error: authError?.message || 'Credenciales inválidas' },
-        { status: 401 }
-      )
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 401 })
     }
 
-    // Obtener datos del perfil
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', authData.user.id)
-      .single()
-
-    const token = signToken({
-      id: authData.user.id,
-      email: authData.user.email,
-      name: profile?.full_name
+    return NextResponse.json({
+      user: data.user,
+      session: data.session,
     })
-
-    const response = NextResponse.json(
-      {
-        message: 'Login exitoso',
-        user: {
-          id: authData.user.id,
-          email: authData.user.email,
-          name: profile?.full_name
-        },
-        token
-      },
-      { status: 200 }
-    )
-
-    response.cookies.set('auth-token', token, {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60,
-      path: '/'
-    })
-
-    return response
   } catch (error) {
     console.error('Login error:', error)
     return NextResponse.json(
-      { error: 'Error en el servidor' },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     )
   }

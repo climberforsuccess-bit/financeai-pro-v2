@@ -1,123 +1,92 @@
 'use client'
 
-import { useAuth } from '@/hooks/useAuth'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
-import { useTransactions } from '@/hooks/useTransactions'
-import { useDebts } from '@/hooks/useDebts'
+import { useFinancialDashboard } from '@/hooks/useFinancialDashboard'
+import { redirect } from 'next/navigation'
 
 export default function DashboardPage() {
-  const { user, loading, logout, isClient } = useAuth()
-  const router = useRouter()
-  const { transactions } = useTransactions(user?.id)
-  const { debts } = useDebts(user?.id)
+  const { user, loading, summary, strategies } = useFinancialDashboard()
 
-  useEffect(() => {
-    if (!isClient || loading) return
-    if (!user) {
-      router.push('/auth/login')
-    }
-  }, [isClient, loading, user, router])
-
-  if (!isClient || loading) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-xl mb-4">Cargando...</p>
-          <div className="animate-spin inline-block w-8 h-8 border-4 border-slate-700 border-t-cyan-400 rounded-full"></div>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-gray-600">Cargando dashboard...</p>
       </div>
     )
   }
 
   if (!user) {
-    return null
+    redirect('/auth/login')
   }
 
-  const totalIncome = transactions
-    .filter((t: any) => t.type === 'income')
-    .reduce((sum: number, t: any) => sum + t.amount, 0)
-
-  const totalExpense = transactions
-    .filter((t: any) => t.type === 'expense')
-    .reduce((sum: number, t: any) => sum + t.amount, 0)
-
-  const totalDebt = debts.reduce((sum: number, d: any) => sum + d.balance, 0)
-
-  const recentTransactions = transactions.slice(0, 5)
-
   return (
-    <main className="min-h-screen bg-slate-900 text-white">
-      <nav className="border-b border-slate-800 px-6 py-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <div className="space-x-4 flex items-center">
-          <Link href="/dashboard/transactions" className="text-slate-400 hover:text-white">
-            Transacciones
-          </Link>
-          <Link href="/dashboard/debts" className="text-slate-400 hover:text-white">
-            Deudas
-          </Link>
-          <Link href="/dashboard/scanner" className="text-slate-400 hover:text-white">
-            Scanner
-          </Link>
-          <button 
-            onClick={logout}
-            className="text-slate-400 hover:text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded"
-          >
-            Logout
-          </button>
-        </div>
-      </nav>
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-8">Dashboard Financiero</h1>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <p className="text-slate-400 mb-8">Bienvenido, {user.name || user.email}</p>
-        
-        <div className="grid grid-cols-4 gap-6 mb-8">
-          <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <p className="text-slate-400 mb-2">Ingresos</p>
-            <p className="text-3xl font-bold text-green-400">${totalIncome.toFixed(2)}</p>
-          </div>
-          <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <p className="text-slate-400 mb-2">Gastos</p>
-            <p className="text-3xl font-bold text-red-400">${totalExpense.toFixed(2)}</p>
-          </div>
-          <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <p className="text-slate-400 mb-2">Balance</p>
-            <p className="text-3xl font-bold">${(totalIncome - totalExpense).toFixed(2)}</p>
-          </div>
-          <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <p className="text-slate-400 mb-2">Deuda Total</p>
-            <p className="text-3xl font-bold text-red-400">${totalDebt.toFixed(2)}</p>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Total Deuda */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <p className="text-gray-600 text-sm">Deuda Total</p>
+          <p className="text-2xl font-bold mt-2">${summary.totalDebt.toFixed(2)}</p>
         </div>
 
-        <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Transacciones Recientes</h2>
-            <Link href="/dashboard/transactions" className="text-cyan-400 hover:text-cyan-300">
-              Ver todas
-            </Link>
-          </div>
-          <div className="space-y-3">
-            {recentTransactions.length > 0 ? (
-              recentTransactions.map((tx: any) => (
-                <div key={tx.id} className="flex justify-between items-center pb-3 border-b border-slate-700 last:border-0">
-                  <div>
-                    <p className="font-semibold">{tx.description}</p>
-                    <p className="text-sm text-slate-400">{new Date(tx.date).toLocaleDateString()}</p>
-                  </div>
-                  <p className={tx.type === 'income' ? 'text-green-400' : 'text-red-400'}>
-                    {tx.type === 'income' ? '+' : '-'}${tx.amount.toFixed(2)}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <p className="text-slate-400">No hay transacciones</p>
-            )}
-          </div>
+        {/* Interés Mensual */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <p className="text-gray-600 text-sm">Interés Mensual</p>
+          <p className="text-2xl font-bold mt-2">${summary.monthlyInterest.toFixed(2)}</p>
+        </div>
+
+        {/* Balance */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <p className="text-gray-600 text-sm">Balance Mensual</p>
+          <p className={`text-2xl font-bold mt-2 ${summary.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            ${summary.balance.toFixed(2)}
+          </p>
+        </div>
+
+        {/* Tasa de Ahorro */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <p className="text-gray-600 text-sm">Tasa de Ahorro</p>
+          <p className="text-2xl font-bold mt-2">{summary.savingsRate.toFixed(1)}%</p>
         </div>
       </div>
-    </main>
+
+      {/* Estrategias de Pago */}
+      {strategies && (
+        <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <h2 className="text-xl font-bold mb-4">Estrategias de Pago</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {strategies.all.map((strat) => (
+              <div key={strat.strategy} className="border rounded p-4">
+                <p className="font-semibold capitalize">{strat.strategy}</p>
+                <p className="text-sm text-gray-600 mt-2">
+                  Meses: <span className="font-bold">{strat.totalMonths}</span>
+                </p>
+                <p className="text-sm text-gray-600">
+                  Interés Total: <span className="font-bold">${strat.totalInterestPaid.toFixed(2)}</span>
+                </p>
+                {strat.strategy === strategies.best.strategy && (
+                  <p className="text-xs text-green-600 font-bold mt-2">✓ Mejor opción</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Gastos por Categoría */}
+      {Object.keys(summary.expensesByCategory).length > 0 && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-bold mb-4">Gastos por Categoría</h2>
+          <div className="space-y-3">
+            {Object.entries(summary.expensesByCategory).map(([category, amount]) => (
+              <div key={category} className="flex justify-between items-center border-b pb-2">
+                <span className="text-gray-700">{category}</span>
+                <span className="font-bold">${amount.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

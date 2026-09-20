@@ -1,87 +1,74 @@
-import { supabase } from '@/lib/supabase'
-import { signToken } from '@/lib/jwt'
+import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import bcryptjs from 'bcryptjs'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+)
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { email, password, fullName } = body
+    const { email, password, name } = await req.json()
 
-    if (!email || !password || !fullName) {
+    if (!email || !password || !name) {
       return NextResponse.json(
-        { error: 'Email, password y nombre requeridos' },
+        { error: 'Email, contraseña y nombre son requeridos' },
         { status: 400 }
       )
     }
 
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .single()
+    // Sign up with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+    })
 
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'El usuario ya existe' },
-        { status: 400 }
-      )
+    if (authError) {
+      return NextResponse.json({ error: authError.message }, { status: 400 })
     }
 
-    const passwordHash = await bcryptjs.hash(password, 10)
-
-    const { data: newUser, error } = await supabase
-      .from('users')
-      .insert([
-        {
-          email,
-          password_hash: passwordHash,
-          full_name: fullName,
-          country: 'CO',
-          currency: 'COP'
-        }
-      ])
-      .select()
-      .single()
-
-    if (error || !newUser) {
+    if (!authData.user) {
       return NextResponse.json(
         { error: 'Error al crear usuario' },
         { status: 500 }
       )
     }
 
-    const token = signToken({
-      id: newUser.id,
-      email: newUser.email,
-      name: newUser.full_name
-    })
-
-    const response = NextResponse.json(
-      {
-        message: 'Usuario creado exitosamente',
-        user: {
-          id: newUser.id,
-          email: newUser.email,
-          name: newUser.full_name
+    // Create default profile
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert([
+        {
+          user_id: authData.user.id,
+          name,
+          full_name: name,
+          is_default: true,
+          plan: 'free',
+          subscription_status: 'inactive',
+          currency: 'USD',
+          total_saved: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         },
-        token
-      },
-      { status: 201 }
-    )
+      ])
 
-    response.cookies.set('auth-token', token, {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60,
-      path: '/'
+    if (profileError) {
+      console.error('Profile creation error:', profileError)
+      return NextResponse.json(
+        { error: 'Error al crear perfil: ' + profileError.message },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      user: authData.user,
+      session: authData.session,
+      message: 'Usuario registrado exitosamente',
     })
-
-    return response
   } catch (error) {
+    console.error('Signup error:', error)
     return NextResponse.json(
-      { error: 'Error en el servidor' },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     )
   }
