@@ -1,26 +1,28 @@
+'use client'
+
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from './useAuth'
-import { Debt } from '@/types'
+import type { Debt } from '@/types'
 
 interface UseDebtsReturn {
   debts: Debt[]
   loading: boolean
   error: string | null
-  addDebt: (debt: Omit<Debt, 'id' | 'created_at'>) => Promise<Debt | null>
-  updateDebt: (id: string, updates: Partial<Debt>) => Promise<Debt | null>
-  deleteDebt: (id: string) => Promise<boolean>
   refetch: () => Promise<void>
+  addDebt: (debt: Omit<Debt, 'id' | 'created_at'>) => Promise<void>
+  updateDebt: (id: string, debt: Partial<Debt>) => Promise<void>
+  deleteDebt: (id: string) => Promise<void>
 }
 
 export function useDebts(): UseDebtsReturn {
-  const { user, authenticated } = useAuth()
+  const { user } = useAuth()
   const [debts, setDebts] = useState<Debt[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchDebts = async () => {
-    if (!authenticated || !user) {
+    if (!user) {
       setDebts([])
       setLoading(false)
       return
@@ -28,15 +30,18 @@ export function useDebts(): UseDebtsReturn {
 
     try {
       setLoading(true)
-      const { data, error: err } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('debts')
         .select('*')
         .eq('user_id', user.id)
+        .order('due_date', { ascending: true })
 
-      if (err) throw err
+      if (fetchError) throw fetchError
+
       setDebts((data as Debt[]) || [])
       setError(null)
     } catch (err: any) {
+      console.error('Error fetching debts:', err)
       setError(err.message)
       setDebts([])
     } finally {
@@ -46,73 +51,64 @@ export function useDebts(): UseDebtsReturn {
 
   useEffect(() => {
     fetchDebts()
-  }, [authenticated, user])
+  }, [user])
 
-  const addDebt = async (debt: Omit<Debt, 'id' | 'created_at'>): Promise<Debt | null> => {
-    if (!user) {
-      setError('User not authenticated')
-      return null
-    }
-
+  const addDebt = async (debt: Omit<Debt, 'id' | 'created_at'>) => {
     try {
-      const { data, error: err } = await supabase
+      const { error: insertError } = await supabase
         .from('debts')
-        .insert([{ ...debt, user_id: user.id }])
-        .select()
-        .single()
+        .insert([
+          {
+            ...debt,
+            created_at: new Date().toISOString(),
+          },
+        ])
 
-      if (err) throw err
-      setDebts([...debts, data as Debt])
-      return data as Debt
+      if (insertError) throw insertError
+      await fetchDebts()
     } catch (err: any) {
-      setError(err.message)
-      return null
+      console.error('Error adding debt:', err)
+      throw err
     }
   }
 
-  const updateDebt = async (id: string, updates: Partial<Debt>): Promise<Debt | null> => {
+  const updateDebt = async (id: string, debt: Partial<Debt>) => {
     try {
-      const { data, error: err } = await supabase
+      const { error: updateError } = await supabase
         .from('debts')
-        .update(updates)
+        .update(debt)
         .eq('id', id)
-        .select()
-        .single()
 
-      if (err) throw err
-      setDebts(debts.map((d) => (d.id === id ? (data as Debt) : d)))
-      return data as Debt
+      if (updateError) throw updateError
+      await fetchDebts()
     } catch (err: any) {
-      setError(err.message)
-      return null
+      console.error('Error updating debt:', err)
+      throw err
     }
   }
 
-  const deleteDebt = async (id: string): Promise<boolean> => {
+  const deleteDebt = async (id: string) => {
     try {
-      const { error: err } = await supabase
+      const { error: deleteError } = await supabase
         .from('debts')
         .delete()
         .eq('id', id)
 
-      if (err) throw err
-      setDebts(debts.filter((d) => d.id !== id))
-      return true
+      if (deleteError) throw deleteError
+      await fetchDebts()
     } catch (err: any) {
-      setError(err.message)
-      return false
+      console.error('Error deleting debt:', err)
+      throw err
     }
   }
-
-  const refetch = fetchDebts
 
   return {
     debts,
     loading,
     error,
+    refetch: fetchDebts,
     addDebt,
     updateDebt,
     deleteDebt,
-    refetch,
   }
 }

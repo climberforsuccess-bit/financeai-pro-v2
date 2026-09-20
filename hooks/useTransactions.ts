@@ -1,26 +1,30 @@
+'use client'
+
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from './useAuth'
-import { Transaction } from '@/types'
+import type { Transaction } from '@/types'
 
 interface UseTransactionsReturn {
   transactions: Transaction[]
   loading: boolean
   error: string | null
-  addTransaction: (tx: Omit<Transaction, 'id' | 'created_at'>) => Promise<Transaction | null>
-  updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<Transaction | null>
-  deleteTransaction: (id: string) => Promise<boolean>
   refetch: () => Promise<void>
+  addTransaction: (transaction: Omit<Transaction, 'id' | 'created_at'>) => Promise<void>
+  updateTransaction: (id: string, transaction: Partial<Transaction>) => Promise<void>
+  deleteTransaction: (id: string) => Promise<void>
+  getByCategory: (category: string) => Transaction[]
+  getByDateRange: (startDate: string, endDate: string) => Transaction[]
 }
 
 export function useTransactions(): UseTransactionsReturn {
-  const { user, authenticated } = useAuth()
+  const { user } = useAuth()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchTransactions = async () => {
-    if (!authenticated || !user) {
+    if (!user) {
       setTransactions([])
       setLoading(false)
       return
@@ -28,16 +32,18 @@ export function useTransactions(): UseTransactionsReturn {
 
     try {
       setLoading(true)
-      const { data, error: err } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('transactions')
         .select('*')
         .eq('user_id', user.id)
         .order('date', { ascending: false })
 
-      if (err) throw err
+      if (fetchError) throw fetchError
+
       setTransactions((data as Transaction[]) || [])
       setError(null)
     } catch (err: any) {
+      console.error('Error fetching transactions:', err)
       setError(err.message)
       setTransactions([])
     } finally {
@@ -47,78 +53,77 @@ export function useTransactions(): UseTransactionsReturn {
 
   useEffect(() => {
     fetchTransactions()
-  }, [authenticated, user])
+  }, [user])
 
-  const addTransaction = async (
-    tx: Omit<Transaction, 'id' | 'created_at'>
-  ): Promise<Transaction | null> => {
-    if (!user) {
-      setError('User not authenticated')
-      return null
-    }
-
+  const addTransaction = async (transaction: Omit<Transaction, 'id' | 'created_at'>) => {
     try {
-      const { data, error: err } = await supabase
+      const { error: insertError } = await supabase
         .from('transactions')
-        .insert([{ ...tx, user_id: user.id }])
-        .select()
-        .single()
+        .insert([
+          {
+            ...transaction,
+            created_at: new Date().toISOString(),
+          },
+        ])
 
-      if (err) throw err
-      setTransactions([data as Transaction, ...transactions])
-      return data as Transaction
+      if (insertError) throw insertError
+      await fetchTransactions()
     } catch (err: any) {
-      setError(err.message)
-      return null
+      console.error('Error adding transaction:', err)
+      throw err
     }
   }
 
-  const updateTransaction = async (
-    id: string,
-    updates: Partial<Transaction>
-  ): Promise<Transaction | null> => {
+  const updateTransaction = async (id: string, transaction: Partial<Transaction>) => {
     try {
-      const { data, error: err } = await supabase
+      const { error: updateError } = await supabase
         .from('transactions')
-        .update(updates)
+        .update(transaction)
         .eq('id', id)
-        .select()
-        .single()
 
-      if (err) throw err
-      setTransactions(transactions.map((t) => (t.id === id ? (data as Transaction) : t)))
-      return data as Transaction
+      if (updateError) throw updateError
+      await fetchTransactions()
     } catch (err: any) {
-      setError(err.message)
-      return null
+      console.error('Error updating transaction:', err)
+      throw err
     }
   }
 
-  const deleteTransaction = async (id: string): Promise<boolean> => {
+  const deleteTransaction = async (id: string) => {
     try {
-      const { error: err } = await supabase
+      const { error: deleteError } = await supabase
         .from('transactions')
         .delete()
         .eq('id', id)
 
-      if (err) throw err
-      setTransactions(transactions.filter((t) => t.id !== id))
-      return true
+      if (deleteError) throw deleteError
+      await fetchTransactions()
     } catch (err: any) {
-      setError(err.message)
-      return false
+      console.error('Error deleting transaction:', err)
+      throw err
     }
   }
 
-  const refetch = fetchTransactions
+  const getByCategory = (category: string): Transaction[] => {
+    return transactions.filter((t) => t.category.toLowerCase() === category.toLowerCase())
+  }
+
+  const getByDateRange = (startDate: string, endDate: string): Transaction[] => {
+    return transactions.filter((t) => {
+      const date = new Date(t.date)
+      return date >= new Date(startDate) && date <= new Date(endDate)
+    })
+  }
 
   return {
     transactions,
     loading,
     error,
+    refetch: fetchTransactions,
     addTransaction,
     updateTransaction,
     deleteTransaction,
-    refetch,
+    getByCategory,
+    getByDateRange,
   }
 }

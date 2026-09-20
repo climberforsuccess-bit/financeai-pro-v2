@@ -31,13 +31,6 @@ export function calculateAvalancheStrategy(
 
   const debtsWithPlan: DebtWithPlan[] = sortedDebts.map((debt) => ({
     ...debt,
-    profile_id: debt.profile_id,
-    category: debt.category,
-    property_value: debt.property_value,
-    loan_term_months: debt.loan_term_months,
-    loan_start_date: debt.loan_start_date,
-    current_loan_month: debt.current_loan_month,
-    vehicle_value: debt.vehicle_value,
     payoffMonth: 0,
     totalInterestOnDebt: 0,
     monthlyPayment: debt.minimum_payment || 0,
@@ -80,13 +73,6 @@ export function calculateSnowballStrategy(
 
   const debtsWithPlan: DebtWithPlan[] = sortedDebts.map((debt) => ({
     ...debt,
-    profile_id: debt.profile_id,
-    category: debt.category,
-    property_value: debt.property_value,
-    loan_term_months: debt.loan_term_months,
-    loan_start_date: debt.loan_start_date,
-    current_loan_month: debt.current_loan_month,
-    vehicle_value: debt.vehicle_value,
     payoffMonth: 0,
     totalInterestOnDebt: 0,
     monthlyPayment: debt.minimum_payment || 0,
@@ -129,13 +115,6 @@ export function calculateConsolidationStrategy(
 
   const debtsWithPlan: DebtWithPlan[] = debts.map((debt) => ({
     ...debt,
-    profile_id: debt.profile_id,
-    category: debt.category,
-    property_value: debt.property_value,
-    loan_term_months: debt.loan_term_months,
-    loan_start_date: debt.loan_start_date,
-    current_loan_month: debt.current_loan_month,
-    vehicle_value: debt.vehicle_value,
     payoffMonth: 0,
     totalInterestOnDebt: 0,
     monthlyPayment: monthlyPayment,
@@ -179,13 +158,6 @@ export function calculateHybridStrategy(
 
   const debtsWithPlan: DebtWithPlan[] = allDebts.map((debt) => ({
     ...debt,
-    profile_id: debt.profile_id,
-    category: debt.category,
-    property_value: debt.property_value,
-    loan_term_months: debt.loan_term_months,
-    loan_start_date: debt.loan_start_date,
-    current_loan_month: debt.current_loan_month,
-    vehicle_value: debt.vehicle_value,
     payoffMonth: 0,
     totalInterestOnDebt: 0,
     monthlyPayment: debt.minimum_payment || 0,

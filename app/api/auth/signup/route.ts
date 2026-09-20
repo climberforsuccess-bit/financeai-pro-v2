@@ -8,9 +8,9 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, name } = await req.json()
+    const { email, password, fullName } = await req.json()
 
-    if (!email || !password || !name) {
+    if (!email || !password || !fullName) {
       return NextResponse.json(
         { error: 'Email, contraseña y nombre son requeridos' },
         { status: 400 }
@@ -39,10 +39,9 @@ export async function POST(req: NextRequest) {
       .from('profiles')
       .insert([
         {
-          user_id: authData.user.id,
-          name,
-          full_name: name,
-          is_default: true,
+          id: authData.user.id,
+          email: authData.user.email,
+          full_name: fullName,
           plan: 'free',
           subscription_status: 'inactive',
           currency: 'USD',

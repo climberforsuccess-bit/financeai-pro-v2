@@ -1,102 +1,114 @@
+'use client'
+
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
-import { Profile } from '@/types'
+import type { User } from '@supabase/supabase-js'
+import type { Profile } from '@/types'
 
 interface UseAuthReturn {
-  user: any | null
+  user: User | null
   profile: Profile | null
+  authenticated: boolean
   loading: boolean
   error: string | null
-  authenticated: boolean
   logout: () => Promise<void>
   refetch: () => Promise<void>
 }
 
 export function useAuth(): UseAuthReturn {
-  const [user, setUser] = useState<any | null>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [authenticated, setAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
-  const fetchProfile = async (userId: string) => {
+  const fetchUser = async () => {
     try {
-      const { data, error: err } = await supabase
+      setLoading(true)
+      const {
+        data: { user: currentUser },
+        error: userError,
+      } = await supabase.auth.getUser()
+
+      if (userError) throw userError
+
+      if (!currentUser) {
+        setUser(null)
+        setProfile(null)
+        setAuthenticated(false)
+        setError(null)
+        setLoading(false)
+        return
+      }
+
+      setUser(currentUser)
+      setAuthenticated(true)
+
+      // Fetch profile
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', currentUser.id)
         .single()
 
-      if (err) throw err
-      setProfile(data as Profile)
-    } catch (err: any) {
-      setError(err.message)
-      setProfile(null)
-    }
-  }
+      if (profileError && profileError.code !== 'PGRST116') {
+        throw profileError
+      }
 
-  const refetch = async () => {
-    if (user) {
-      await fetchProfile(user.id)
+      setProfile((profileData as Profile) || null)
+      setError(null)
+    } catch (err: any) {
+      console.error('Auth error:', err)
+      setError(err.message)
+      setUser(null)
+      setProfile(null)
+      setAuthenticated(false)
+    } finally {
+      setLoading(false)
     }
   }
 
   useEffect(() => {
-    const getSession = async () => {
-      try {
-        const { data, error: err } = await supabase.auth.getSession()
-        if (err) throw err
+    fetchUser()
 
-        if (data.session?.user) {
-          setUser(data.session.user)
-          await fetchProfile(data.session.user.id)
-        } else {
-          setUser(null)
-          setProfile(null)
-        }
-      } catch (err: any) {
-        setError(err.message)
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
         setUser(null)
-      } finally {
-        setLoading(false)
+        setProfile(null)
+        setAuthenticated(false)
+      } else if (session) {
+        await fetchUser()
       }
-    }
+    })
 
-    getSession()
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          setUser(session.user)
-          await fetchProfile(session.user.id)
-        } else {
-          setUser(null)
-          setProfile(null)
-        }
-      }
-    )
-
-    return () => {
-      authListener?.subscription.unsubscribe()
-    }
+    return () => subscription.unsubscribe()
   }, [])
 
   const logout = async () => {
     try {
-      const { error: err } = await supabase.auth.signOut()
-      if (err) throw err
+      await supabase.auth.signOut()
       setUser(null)
       setProfile(null)
+      setAuthenticated(false)
+      router.push('/auth/login')
     } catch (err: any) {
       setError(err.message)
     }
   }
 
+  const refetch = fetchUser
+
   return {
     user,
     profile,
+    authenticated,
     loading,
     error,
-    authenticated: !!user,
     logout,
     refetch,
   }
