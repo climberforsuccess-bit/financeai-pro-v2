@@ -1,22 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useTransactions } from '@/hooks/useTransactions'
 
 export default function TransactionsPage() {
   const router = useRouter()
-  const { authenticated, loading: authLoading } = useAuth()
+  const { isAuthenticated, loading: authLoading } = useAuth()
   const { transactions, loading, error } = useTransactions()
-  const [filterType, setFilterType] = useState<'all' | 'expense' | 'income'>('all')
-  const [filterCategory, setFilterCategory] = useState<string>('all')
 
   useEffect(() => {
-    if (!authLoading && !authenticated) {
+    if (!authLoading && !isAuthenticated) {
       router.push('/auth/login')
     }
-  }, [authLoading, authenticated, router])
+  }, [authLoading, isAuthenticated, router])
 
   if (loading) {
     return (
@@ -29,30 +27,43 @@ export default function TransactionsPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-lg font-semibold text-red-600">Error: {error}</p>
+        <p className="text-lg font-semibold text-red-600">Error: {error.message}</p>
       </div>
     )
   }
 
-  // Filter transactions
-  let filtered = transactions
-  if (filterType !== 'all') {
-    filtered = filtered.filter((t) => t.type === filterType)
-  }
-  if (filterCategory !== 'all') {
-    filtered = filtered.filter((t) => t.category === filterCategory)
-  }
-
-  // Get unique categories
-  const categories = Array.from(new Set(transactions.map((t) => t.category)))
-
-  // Calculate totals
-  const totalExpenses = transactions
-    .filter((t) => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0)
   const totalIncome = transactions
-    .filter((t) => t.type === 'income')
+    .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0)
+
+  const totalExpenses = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  const sortedTransactions = [...transactions].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  )
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return 'bg-green-100 text-green-800'
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'failed':
+        return 'bg-red-100 text-red-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const getTypeIcon = (type: string) => {
+    return type === 'income' ? '↓' : '↑'
+  }
+
+  const getTypeColor = (type: string) => {
+    return type === 'income' ? 'text-green-600' : 'text-red-600'
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -61,7 +72,7 @@ export default function TransactionsPage() {
         <div className="mb-8 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Transacciones</h1>
-            <p className="text-gray-600 mt-2">{transactions.length} movimientos registrados</p>
+            <p className="text-gray-600 mt-2">Gestiona tu historial de movimientos</p>
           </div>
           <button
             onClick={() => router.push('/dashboard')}
@@ -71,112 +82,85 @@ export default function TransactionsPage() {
           </button>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-600">Gastos Totales</h3>
-            <p className="text-3xl font-bold text-red-600 mt-2">
-              ${totalExpenses.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-600">Ingresos Totales</h3>
+            <p className="text-gray-600 text-sm font-semibold">Ingresos</p>
             <p className="text-3xl font-bold text-green-600 mt-2">
               ${totalIncome.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
             </p>
           </div>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value as any)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600"
-              >
-                <option value="all">Todos</option>
-                <option value="expense">Gasto</option>
-                <option value="income">Ingreso</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600"
-              >
-                <option value="all">Todas</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <p className="text-gray-600 text-sm font-semibold">Gastos</p>
+            <p className="text-3xl font-bold text-red-600 mt-2">
+              ${totalExpenses.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+            </p>
           </div>
         </div>
 
-        {/* Transactions List */}
-        <div className="space-y-4">
-          {filtered.length === 0 ? (
-            <div className="bg-white rounded-lg shadow p-8 text-center">
-              <p className="text-gray-600">No hay transacciones que coincidan con los filtros.</p>
+        {/* Transactions Table */}
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          {transactions.length === 0 ? (
+            <div className="p-8 text-center">
+              <p className="text-gray-600">No tienes transacciones registradas.</p>
             </div>
           ) : (
-            filtered.map((transaction) => (
-              <div key={transaction.id} className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{transaction.description}</h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {transaction.category}
-                      {transaction.merchant && ` • ${transaction.merchant}`}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {new Date(transaction.date).toLocaleDateString('es-AR')}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p
-                      className={`text-xl font-bold ${
-                        transaction.type === 'expense' ? 'text-red-600' : 'text-green-600'
-                      }`}
-                    >
-                      {transaction.type === 'expense' ? '-' : '+'}$
-                      {transaction.amount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                    </p>
-                    <span
-                      className={`text-xs px-2 py-1 rounded mt-2 inline-block ${
-                        transaction.status === 'completed'
-                          ? 'bg-green-100 text-green-800'
-                          : transaction.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {transaction.status === 'completed'
-                        ? 'Completado'
-                        : transaction.status === 'pending'
-                          ? 'Pendiente'
-                          : 'Revertido'}
-                    </span>
-                  </div>
-                </div>
-                {transaction.tags && transaction.tags.length > 0 && (
-                  <div className="mt-3 flex gap-2 flex-wrap">
-                    {transaction.tags.map((tag) => (
-                      <span key={tag} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700">Descripción</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700">Categoría</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700">Fecha</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700">Estado</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700">Etiquetas</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700">Monto</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {sortedTransactions.map((transaction) => (
+                    <tr key={transaction.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        <div className="flex items-center">
+                          <span className={`text-lg font-bold ${getTypeColor(transaction.type)} mr-2`}>
+                            {getTypeIcon(transaction.type)}
+                          </span>
+                          {transaction.merchant || transaction.description}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{transaction.category}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {new Date(transaction.date).toLocaleDateString('es-AR')}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(transaction.status)}`}>
+                          {transaction.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div className="flex flex-wrap gap-1">
+                          {transaction.tags && transaction.tags.length > 0 ? (
+                            transaction.tags.map((tag: string, idx: number) => (
+                              <span key={idx} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                                {tag}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-gray-400 text-xs">Sin etiquetas</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm font-semibold text-right">
+                        <span className={getTypeColor(transaction.type)}>
+                          {transaction.type === 'income' ? '+' : '-'}
+                          ${transaction.amount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

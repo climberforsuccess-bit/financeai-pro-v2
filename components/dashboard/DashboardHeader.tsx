@@ -1,15 +1,43 @@
 'use client'
 
-import { useAuth } from '@/hooks/useAuth'
+import { useProfile } from '@/hooks/useProfile'
+import { useUser } from '@clerk/nextjs'
 
 export function DashboardHeader() {
-  const { user } = useAuth()
+  const { user } = useUser()
+  const { profile, loading } = useProfile()
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6 mb-8">
+        <p className="text-gray-600">Cargando...</p>
+      </div>
+    )
+  }
+
+  const displayName = profile?.display_name || profile?.full_name || user?.firstName || 'Usuario'
+  const email = user?.emailAddresses?.[0]?.emailAddress || profile?.email || 'No disponible'
 
   return (
-    <div className="border-b border-gray-700 bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-        <p className="text-gray-400 mt-1">Bienvenido, {user?.email}</p>
+    <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg shadow p-8 mb-8 text-white">
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-4xl font-bold">Bienvenido, {displayName}</h1>
+          <p className="text-blue-100 mt-2">{email}</p>
+          {profile && (
+            <p className="text-blue-100 mt-1">
+              Plan: <span className="font-semibold capitalize">{profile.plan}</span>
+            </p>
+          )}
+        </div>
+        <div className="text-right">
+          {profile && (
+            <>
+              <p className="text-blue-100 text-sm">Score Financiero</p>
+              <p className="text-4xl font-bold">{profile.financial_score}</p>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

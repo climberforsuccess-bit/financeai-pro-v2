@@ -7,14 +7,14 @@ import { useDebts } from '@/hooks/useDebts'
 
 export default function DebtsPage() {
   const router = useRouter()
-  const { authenticated, loading: authLoading } = useAuth()
+  const { isAuthenticated, loading: authLoading } = useAuth()
   const { debts, loading, error } = useDebts()
 
   useEffect(() => {
-    if (!authLoading && !authenticated) {
+    if (!authLoading && !isAuthenticated) {
       router.push('/auth/login')
     }
-  }, [authLoading, authenticated, router])
+  }, [authLoading, isAuthenticated, router])
 
   if (loading) {
     return (
@@ -27,13 +27,16 @@ export default function DebtsPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-lg font-semibold text-red-600">Error: {error}</p>
+        <p className="text-lg font-semibold text-red-600">Error: {error.message}</p>
       </div>
     )
   }
 
   const totalDebt = debts.reduce((sum, debt) => sum + debt.current_balance, 0)
-  const sortedDebts = [...debts].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+  const sortedDebts = [...debts].sort((a, b) => {
+    if (!a.due_date || !b.due_date) return 0
+    return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+  })
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -90,7 +93,9 @@ export default function DebtsPage() {
                   </div>
                   <div>
                     <p className="text-gray-600">Vencimiento</p>
-                    <p className="font-semibold text-gray-900">{new Date(debt.due_date).toLocaleDateString('es-AR')}</p>
+                    <p className="font-semibold text-gray-900">
+                      {debt.due_date ? new Date(debt.due_date).toLocaleDateString('es-AR') : 'N/A'}
+                    </p>
                   </div>
                 </div>
 
