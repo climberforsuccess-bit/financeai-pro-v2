@@ -1,25 +1,32 @@
-import type { Metadata, ReactNode } from 'next'
+import type { ReactNode } from 'react'
+import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
+
+import '@/app/[locale]/globals.css'
 
 export const metadata: Metadata = {
   title: 'FinanceAI Pro',
-  description: 'Platform de finanzas personales con IA',
+  description: 'Tu plataforma de finanzas personales',
 }
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
   return [{ locale: 'es' }, { locale: 'en' }]
 }
 
-export default async function LocaleLayout({
-  children,
-  params,
-}: {
+interface RootLayoutProps {
   children: ReactNode
   params: Promise<{ locale: string }>
-}) {
+}
+
+export default async function RootLayout({ children, params }: RootLayoutProps) {
   const { locale } = await params
 
+  if (!['es', 'en'].includes(locale)) {
+    notFound()
+  }
+
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale}>
       <body>{children}</body>
     </html>
   )

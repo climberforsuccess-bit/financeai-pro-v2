@@ -1,54 +1,56 @@
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-import { Card } from '@/types'
-import { useAuth } from './useAuth'
+'use client'
 
-export function useCards() {
-  const { user } = useAuth()
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase/client'
+import type { Card } from '@/types'
+
+interface UseCardsReturn {
+  cards: Card[]
+  loading: boolean
+  error: Error | null
+  refetch: () => Promise<void>
+}
+
+export function useCards(profileId?: string): UseCardsReturn {
   const [cards, setCards] = useState<Card[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<Error | null>(null)
 
-  useEffect(() => {
-    if (!user) {
+  const fetchCards = async () => {
+    if (!profileId) {
+      setCards([])
       setLoading(false)
       return
     }
 
-    const fetchCards = async () => {
-      try {
-        const { data, error: err } = await supabase
-          .from('cards')
-          .select('*')
-          .eq('user_id', user.id)
+    try {
+      setLoading(true)
+      const { data, error: fetchError } = await supabase
+        .from('cards')
+        .select('*')
+        .eq('profile_id', profileId)
 
-        if (err) throw err
+      if (fetchError) throw fetchError
 
-        // ✅ CALCULAR utilization_ratio automáticamente
-        const cardsWithRatio = (data || []).map((card: Card) => {
-          const ratio =
-            card.limit_amount > 0
-              ? Math.round((card.balance / card.limit_amount) * 100)
-              : 0
-
-          return {
-            ...card,
-            utilization_ratio: Math.min(100, Math.max(0, ratio)),
-          }
-        })
-
-        setCards(cardsWithRatio)
-        setError(null)
-      } catch (err) {
-        console.error('Error fetching cards:', err)
-        setError(err instanceof Error ? err.message : 'Error desconocido')
-      } finally {
-        setLoading(false)
-      }
+      setCards((data as Card[]) || [])
+      setError(null)
+    } catch (err: any) {
+      console.error('Error fetching cards:', err)
+      setError(err)
+      setCards([])
+    } finally {
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchCards()
-  }, [user])
+  }, [profileId])
 
-  return { cards, loading, error }
+  return {
+    cards,
+    loading,
+    error,
+    refetch: fetchCards,
+  }
 }

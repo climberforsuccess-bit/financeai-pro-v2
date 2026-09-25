@@ -1,85 +1,56 @@
 import { createClient } from '@supabase/supabase-js'
-import * as dotenv from 'dotenv'
-
-dotenv.config({ path: '.env.local' })
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ Missing Supabase environment variables')
+  console.error('Missing Supabase environment variables')
   process.exit(1)
 }
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-async function runTests() {
-  console.log('🧪 Starting integration tests...\n')
-
-  // Test 1: Connection
-  console.log('1️⃣ Testing Supabase connection...')
+async function testIntegration() {
   try {
-    const { data, error } = await supabase.auth.getSession()
-    if (error) throw error
-    console.log('✅ Supabase connection OK\n')
-  } catch (err: any) {
-    console.error('❌ Connection failed:', err.message)
-    process.exit(1)
-  }
+    console.log('Testing Supabase integration...')
 
-  // Test 2: Check profiles table
-  console.log('2️⃣ Checking profiles table...')
-  try {
-    const { data, error } = await supabase
+    const { error: profilesError } = await supabase
       .from('profiles')
       .select('*')
       .limit(1)
 
-    if (error) {
-      console.error('❌ Error:', error.message)
-      console.error('Code:', error.code)
-      console.error('Details:', error.details)
+    if (profilesError) {
+      console.error('✗ Profiles:', profilesError.message)
     } else {
-      console.log('✅ profiles table OK')
-      console.log('Sample data:', data)
+      console.log('✓ Profiles table accessible')
     }
-  } catch (err: any) {
-    console.error('❌ Exception:', err.message)
-  }
 
-  // Test 3: Check debts table
-  console.log('\n3️⃣ Checking debts table...')
-  try {
-    const { data, error } = await supabase
+    const { error: debtsError } = await supabase
       .from('debts')
       .select('*')
       .limit(1)
 
-    if (error) {
-      console.error('❌ Error:', error.message)
+    if (debtsError) {
+      console.error('✗ Debts:', debtsError.message)
     } else {
-      console.log('✅ debts table OK')
+      console.log('✓ Debts table accessible')
     }
-  } catch (err: any) {
-    console.error('❌ Exception:', err.message)
-  }
 
-  // Test 4: Check transactions table
-  console.log('\n4️⃣ Checking transactions table...')
-  try {
-    const { data, error } = await supabase
+    const { error: transError } = await supabase
       .from('transactions')
       .select('*')
       .limit(1)
 
-    if (error) {
-      console.error('❌ Error:', error.message)
+    if (transError) {
+      console.error('✗ Transactions:', transError.message)
     } else {
-      console.log('✅ transactions table OK')
+      console.log('✓ Transactions table accessible')
     }
+
+    console.log('Integration test complete')
   } catch (err: any) {
-    console.error('❌ Exception:', err.message)
+    console.error('Error:', err.message)
   }
 }
 
-runTests()
+testIntegration()

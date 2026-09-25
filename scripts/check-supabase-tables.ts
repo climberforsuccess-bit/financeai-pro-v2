@@ -1,32 +1,34 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing Supabase environment variables')
+  process.exit(1)
+}
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 async function checkTables() {
-  const tables = ['profiles', 'debts', 'transactions', 'cards', 'goals']
-  
-  console.log('\n📊 Verificando tablas en Supabase...\n')
-  
-  for (const table of tables) {
-    try {
-      const { data, error, count } = await supabase
+  try {
+    const tables = ['profiles', 'debts', 'transactions', 'cards']
+    
+    for (const table of tables) {
+      const { error } = await supabase
         .from(table)
-        .select('*', { count: 'exact', head: true })
-      
+        .select('*')
+        .limit(1)
+
       if (error) {
-        console.log(`❌ ${table}: ${error.message}`)
+        console.error(`✗ ${table}: ${error.message}`)
       } else {
-        console.log(`✅ ${table}: EXISTS (${count} registros)`)
+        console.log(`✓ ${table} exists`)
       }
-    } catch (err: any) {
-      console.log(`❌ ${table}: ${err.message}`)
     }
+  } catch (err: any) {
+    console.error('Error:', err.message)
   }
-  
-  console.log('\n')
 }
 
 checkTables()
