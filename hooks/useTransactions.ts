@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import { useAuth } from './useAuth'
 import type { Transaction } from '@/types'
 
 interface UseTransactionsReturn {
   transactions: Transaction[]
   loading: boolean
-  error: string | null
+  error: Error | null
   refetch: () => Promise<void>
   addTransaction: (transaction: Omit<Transaction, 'id' | 'created_at'>) => Promise<void>
   updateTransaction: (id: string, transaction: Partial<Transaction>) => Promise<void>
@@ -17,14 +16,13 @@ interface UseTransactionsReturn {
   getByDateRange: (startDate: string, endDate: string) => Transaction[]
 }
 
-export function useTransactions(): UseTransactionsReturn {
-  const { user } = useAuth()
+export function useTransactions(profileId?: string): UseTransactionsReturn {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<Error | null>(null)
 
   const fetchTransactions = async () => {
-    if (!user) {
+    if (!profileId) {
       setTransactions([])
       setLoading(false)
       return
@@ -35,7 +33,7 @@ export function useTransactions(): UseTransactionsReturn {
       const { data, error: fetchError } = await supabase
         .from('transactions')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('profile_id', profileId)
         .order('date', { ascending: false })
 
       if (fetchError) throw fetchError
@@ -44,7 +42,7 @@ export function useTransactions(): UseTransactionsReturn {
       setError(null)
     } catch (err: any) {
       console.error('Error fetching transactions:', err)
-      setError(err.message)
+      setError(err)
       setTransactions([])
     } finally {
       setLoading(false)
@@ -53,15 +51,17 @@ export function useTransactions(): UseTransactionsReturn {
 
   useEffect(() => {
     fetchTransactions()
-  }, [user])
+  }, [profileId])
 
   const addTransaction = async (transaction: Omit<Transaction, 'id' | 'created_at'>) => {
+    if (!profileId) throw new Error('No profile ID')
     try {
       const { error: insertError } = await supabase
         .from('transactions')
         .insert([
           {
             ...transaction,
+            profile_id: profileId,
             created_at: new Date().toISOString(),
           },
         ])
@@ -105,7 +105,7 @@ export function useTransactions(): UseTransactionsReturn {
   }
 
   const getByCategory = (category: string): Transaction[] => {
-    return transactions.filter((t) => t.category.toLowerCase() === category.toLowerCase())
+    return transactions.filter((t) => t.category?.toLowerCase() === category.toLowerCase())
   }
 
   const getByDateRange = (startDate: string, endDate: string): Transaction[] => {

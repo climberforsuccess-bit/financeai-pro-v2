@@ -1,0 +1,36 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "transactions": "Transacciones",
+    "debts": "Deudas",
+    "goals": "Metas",
+    "cards": "Tarjetas",
+    "subscriptions": "Suscripciones",
+    "reports": "Reportes",
+    "settings": "Configuración"
+  },
+  "header": {
+    "language": "Idioma",
+    "spanish": "Español",
+    "english": "English",
+    "logout": "Cerrar sesión",
+    "profile": "Perfil"
+  },
+  "common": {
+    "create": "Crear",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "back": "Atrás",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "warning": "Advertencia",
+    "noData": "Sin datos",
+    "total": "Total",
+    "month": "Mes",
+    "year": "Año"
+  }
+}

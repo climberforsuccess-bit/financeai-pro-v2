@@ -1,0 +1,28 @@
+{
+  "title": "Transacciones",
+  "create": "Nueva Transacción",
+  "edit": "Editar Transacción",
+  "delete": "Eliminar Transacción",
+  "type": "Tipo",
+  "category": "Categoría",
+  "amount": "Monto",
+  "date": "Fecha",
+  "description": "Descripción",
+  "income": "Ingreso",
+  "expense": "Gasto",
+  "transfer": "Transferencia",
+  "categories": {
+    "salary": "Salario",
+    "freelance": "Freelance",
+    "investment": "Inversión",
+    "other": "Otro",
+    "groceries": "Comida",
+    "utilities": "Servicios",
+    "transportation": "Transporte",
+    "entertainment": "Entretenimiento",
+    "healthcare": "Salud",
+    "education": "Educación"
+  },
+  "filter": "Filtrar",
+  "noTransactions": "Sin transacciones"
+}

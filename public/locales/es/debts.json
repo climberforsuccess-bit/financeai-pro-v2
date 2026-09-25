@@ -1,0 +1,20 @@
+{
+  "title": "Deudas",
+  "create": "Nueva Deuda",
+  "edit": "Editar Deuda",
+  "delete": "Eliminar Deuda",
+  "creditor": "Acreedor",
+  "amount": "Monto",
+  "interest": "Interés (%)",
+  "dueDate": "Fecha de Vencimiento",
+  "status": "Estado",
+  "active": "Activa",
+  "paid": "Pagada",
+  "overdue": "Vencida",
+  "minimumPayment": "Pago Mínimo",
+  "totalInterest": "Interés Total",
+  "aiStrategy": "Estrategia IA",
+  "noDebts": "Sin deudas",
+  "paymentPlan": "Plan de Pago",
+  "projectedPayoff": "Pago Proyectado"
+}

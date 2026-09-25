@@ -1,0 +1,20 @@
+{
+  "title": "Debts",
+  "create": "New Debt",
+  "edit": "Edit Debt",
+  "delete": "Delete Debt",
+  "creditor": "Creditor",
+  "amount": "Amount",
+  "interest": "Interest (%)",
+  "dueDate": "Due Date",
+  "status": "Status",
+  "active": "Active",
+  "paid": "Paid",
+  "overdue": "Overdue",
+  "minimumPayment": "Minimum Payment",
+  "totalInterest": "Total Interest",
+  "aiStrategy": "AI Strategy",
+  "noDebts": "No debts",
+  "paymentPlan": "Payment Plan",
+  "projectedPayoff": "Projected Payoff"
+}

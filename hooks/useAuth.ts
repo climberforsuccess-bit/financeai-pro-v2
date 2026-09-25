@@ -9,9 +9,9 @@ import type { Profile } from '@/types'
 interface UseAuthReturn {
   user: User | null
   profile: Profile | null
-  authenticated: boolean
+  isAuthenticated: boolean
   loading: boolean
-  error: string | null
+  error: Error | null
   logout: () => Promise<void>
   refetch: () => Promise<void>
 }
@@ -19,9 +19,9 @@ interface UseAuthReturn {
 export function useAuth(): UseAuthReturn {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [authenticated, setAuthenticated] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<Error | null>(null)
   const router = useRouter()
 
   const fetchUser = async () => {
@@ -37,16 +37,15 @@ export function useAuth(): UseAuthReturn {
       if (!currentUser) {
         setUser(null)
         setProfile(null)
-        setAuthenticated(false)
+        setIsAuthenticated(false)
         setError(null)
         setLoading(false)
         return
       }
 
       setUser(currentUser)
-      setAuthenticated(true)
+      setIsAuthenticated(true)
 
-      // Fetch profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -61,10 +60,10 @@ export function useAuth(): UseAuthReturn {
       setError(null)
     } catch (err: any) {
       console.error('Auth error:', err)
-      setError(err.message)
+      setError(err)
       setUser(null)
       setProfile(null)
-      setAuthenticated(false)
+      setIsAuthenticated(false)
     } finally {
       setLoading(false)
     }
@@ -73,14 +72,13 @@ export function useAuth(): UseAuthReturn {
   useEffect(() => {
     fetchUser()
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT') {
         setUser(null)
         setProfile(null)
-        setAuthenticated(false)
+        setIsAuthenticated(false)
       } else if (session) {
         await fetchUser()
       }
@@ -94,22 +92,20 @@ export function useAuth(): UseAuthReturn {
       await supabase.auth.signOut()
       setUser(null)
       setProfile(null)
-      setAuthenticated(false)
+      setIsAuthenticated(false)
       router.push('/auth/login')
     } catch (err: any) {
-      setError(err.message)
+      setError(err)
     }
   }
-
-  const refetch = fetchUser
 
   return {
     user,
     profile,
-    authenticated,
+    isAuthenticated,
     loading,
     error,
     logout,
-    refetch,
+    refetch: fetchUser,
   }
 }

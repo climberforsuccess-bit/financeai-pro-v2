@@ -1,0 +1,28 @@
+{
+  "title": "Transactions",
+  "create": "New Transaction",
+  "edit": "Edit Transaction",
+  "delete": "Delete Transaction",
+  "type": "Type",
+  "category": "Category",
+  "amount": "Amount",
+  "date": "Date",
+  "description": "Description",
+  "income": "Income",
+  "expense": "Expense",
+  "transfer": "Transfer",
+  "categories": {
+    "salary": "Salary",
+    "freelance": "Freelance",
+    "investment": "Investment",
+    "other": "Other",
+    "groceries": "Groceries",
+    "utilities": "Utilities",
+    "transportation": "Transportation",
+    "entertainment": "Entertainment",
+    "healthcare": "Healthcare",
+    "education": "Education"
+  },
+  "filter": "Filter",
+  "noTransactions": "No transactions"
+}

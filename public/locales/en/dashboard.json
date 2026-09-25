@@ -1,0 +1,16 @@
+{
+  "title": "Dashboard",
+  "welcome": "Welcome",
+  "summary": "Summary",
+  "income": "Income",
+  "expenses": "Expenses",
+  "balance": "Balance",
+  "totalDebts": "Total Debts",
+  "savingsGoal": "Savings Goal",
+  "recentTransactions": "Recent Transactions",
+  "upcomingPayments": "Upcoming Payments",
+  "debtStatus": "Debt Status",
+  "aiRecommendations": "AI Recommendations",
+  "currency": "Currency",
+  "selectCountry": "Select your country"
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Dashboard",
+  "welcome": "Bienvenido",
+  "summary": "Resumen",
+  "income": "Ingresos",
+  "expenses": "Gastos",
+  "balance": "Saldo",
+  "totalDebts": "Deuda Total",
+  "savingsGoal": "Meta de Ahorro",
+  "recentTransactions": "Transacciones Recientes",
+  "upcomingPayments": "Próximos Pagos",
+  "debtStatus": "Estado de Deudas",
+  "aiRecommendations": "Recomendaciones IA",
+  "currency": "Moneda",
+  "selectCountry": "Selecciona tu país"
+}

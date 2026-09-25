@@ -2,27 +2,25 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import { useAuth } from './useAuth'
 import type { Debt } from '@/types'
 
 interface UseDebtsReturn {
   debts: Debt[]
   loading: boolean
-  error: string | null
+  error: Error | null
   refetch: () => Promise<void>
   addDebt: (debt: Omit<Debt, 'id' | 'created_at'>) => Promise<void>
   updateDebt: (id: string, debt: Partial<Debt>) => Promise<void>
   deleteDebt: (id: string) => Promise<void>
 }
 
-export function useDebts(): UseDebtsReturn {
-  const { user } = useAuth()
+export function useDebts(profileId?: string): UseDebtsReturn {
   const [debts, setDebts] = useState<Debt[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<Error | null>(null)
 
   const fetchDebts = async () => {
-    if (!user) {
+    if (!profileId) {
       setDebts([])
       setLoading(false)
       return
@@ -33,7 +31,7 @@ export function useDebts(): UseDebtsReturn {
       const { data, error: fetchError } = await supabase
         .from('debts')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('profile_id', profileId)
         .order('due_date', { ascending: true })
 
       if (fetchError) throw fetchError
@@ -42,7 +40,7 @@ export function useDebts(): UseDebtsReturn {
       setError(null)
     } catch (err: any) {
       console.error('Error fetching debts:', err)
-      setError(err.message)
+      setError(err)
       setDebts([])
     } finally {
       setLoading(false)
@@ -51,15 +49,17 @@ export function useDebts(): UseDebtsReturn {
 
   useEffect(() => {
     fetchDebts()
-  }, [user])
+  }, [profileId])
 
   const addDebt = async (debt: Omit<Debt, 'id' | 'created_at'>) => {
+    if (!profileId) throw new Error('No profile ID')
     try {
       const { error: insertError } = await supabase
         .from('debts')
         .insert([
           {
             ...debt,
+            profile_id: profileId,
             created_at: new Date().toISOString(),
           },
         ])
