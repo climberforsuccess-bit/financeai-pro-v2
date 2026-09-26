@@ -1,0 +1,17 @@
+[api]
+enabled = true
+max_body_size = "20mb"
+default_query_only = false
+
+[api.external_url]
+enabled = true
+url = "https://rqrpazkkwolxtpiqtdfu.supabase.co"
+
+[api.cors]
+enabled = true
+allow_credentials = true
+allow_headers = ["*"]
+allow_methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+allow_origins = ["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"]
+expose_headers = ["*"]
+max_age = 86400
