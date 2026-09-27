@@ -1,6 +1,6 @@
 {
-  "home": {
+  "common": {
     "title": "FinanceAI Pro",
-    "subtitle": "Control total con IA"
+    "description": "Gestiona tus finanzas inteligentemente"
   }
 }

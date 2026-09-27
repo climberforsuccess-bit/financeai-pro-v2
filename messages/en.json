@@ -1,6 +1,6 @@
 {
-  "home": {
+  "common": {
     "title": "FinanceAI Pro",
-    "subtitle": "Total control with AI"
+    "description": "Manage your finances intelligently"
   }
 }
