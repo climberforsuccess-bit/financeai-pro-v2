@@ -9,9 +9,10 @@ interface UseDebtsReturn {
   loading: boolean
   error: Error | null
   refetch: () => Promise<void>
-  addDebt: (debt: Omit<Debt, 'id' | 'created_at' | 'updated_at'>) => Promise<void>
+  addDebt: (debt: Omit<Debt, 'id' | 'created_at'>) => Promise<void>
   updateDebt: (id: string, debt: Partial<Debt>) => Promise<void>
   deleteDebt: (id: string) => Promise<void>
+  getTotalDebt: () => number
   getTotalBalance: () => number
 }
 
@@ -41,7 +42,7 @@ export function useDebts(profileId?: string): UseDebtsReturn {
         .from('debts')
         .select('*')
         .eq('profile_id', id)
-        .order('due_date', { ascending: true })
+        .order('created_at', { ascending: false })
 
       if (fetchError) throw fetchError
 
@@ -60,7 +61,7 @@ export function useDebts(profileId?: string): UseDebtsReturn {
     fetchDebts()
   }, [fetchDebts])
 
-  const addDebt = async (debt: Omit<Debt, 'id' | 'created_at' | 'updated_at'>) => {
+  const addDebt = async (debt: Omit<Debt, 'id' | 'created_at'>) => {
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
@@ -72,8 +73,8 @@ export function useDebts(profileId?: string): UseDebtsReturn {
           {
             ...debt,
             profile_id: user.id,
+            uid: user.id,
             created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
           },
         ])
 
@@ -90,10 +91,7 @@ export function useDebts(profileId?: string): UseDebtsReturn {
       const supabase = createClient()
       const { error: updateError } = await supabase
         .from('debts')
-        .update({
-          ...debt,
-          updated_at: new Date().toISOString(),
-        })
+        .update(debt)
         .eq('id', id)
 
       if (updateError) throw updateError
@@ -120,8 +118,12 @@ export function useDebts(profileId?: string): UseDebtsReturn {
     }
   }
 
+  const getTotalDebt = (): number => {
+    return debts.reduce((sum, debt) => sum + (debt.total_amount || 0), 0)
+  }
+
   const getTotalBalance = (): number => {
-    return debts.reduce((sum, debt) => sum + (debt.remaining_balance || 0), 0)
+    return debts.reduce((sum, debt) => sum + (debt.current_balance || 0), 0)
   }
 
   return {
@@ -132,6 +134,7 @@ export function useDebts(profileId?: string): UseDebtsReturn {
     addDebt,
     updateDebt,
     deleteDebt,
+    getTotalDebt,
     getTotalBalance,
   }
 }

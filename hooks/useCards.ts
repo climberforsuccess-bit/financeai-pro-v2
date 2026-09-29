@@ -122,7 +122,7 @@ export function useCards(profileId?: string): UseCardsReturn {
   }
 
   const getTotalLimit = (): number => {
-    return cards.reduce((sum, card) => sum + (card.limit || 0), 0)
+    return cards.reduce((sum, card) => sum + (card.limit_amount || 0), 0)
   }
 
   const getTotalBalance = (): number => {
