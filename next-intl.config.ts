@@ -1,7 +1,11 @@
 import { getRequestConfig } from 'next-intl/server'
+import { locales, defaultLocale } from './i18n.config'
 
 export default getRequestConfig(async ({ locale }) => {
+  const validLocale = (locales as readonly string[]).includes(locale ?? '') ? (locale as string) : defaultLocale
+  const messages = (await import(`./messages/${validLocale}.json`)).default
   return {
-    messages: (await import(`./messages/${locale}.json`)).default,
+    locale: validLocale,
+    messages,
   }
 })

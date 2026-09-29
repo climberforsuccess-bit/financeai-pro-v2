@@ -1,6 +1,19 @@
 {
-  "common": {
-    "title": "FinanceAI Pro",
-    "description": "Manage your finances intelligently"
+  "header": {
+    "title": "FinanceAI Pro"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome to your Dashboard",
+    "debts": "Debts",
+    "transactions": "Transactions",
+    "scanner": "Scanner"
+  },
+  "auth": {
+    "login": "Sign in",
+    "signup": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password"
   }
 }
