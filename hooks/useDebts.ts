@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase/client'
+import { useEffect, useState, useCallback } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import type { Debt } from '@/types'
 
 interface UseDebtsReturn {
@@ -9,6 +9,10 @@ interface UseDebtsReturn {
   loading: boolean
   error: Error | null
   refetch: () => Promise<void>
+  addDebt: (debt: Omit<Debt, 'id' | 'created_at' | 'updated_at'>) => Promise<void>
+  updateDebt: (id: string, debt: Partial<Debt>) => Promise<void>
+  deleteDebt: (id: string) => Promise<void>
+  getTotalBalance: () => number
 }
 
 export function useDebts(profileId?: string): UseDebtsReturn {
@@ -16,19 +20,28 @@ export function useDebts(profileId?: string): UseDebtsReturn {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
-  const fetchDebts = async () => {
-    if (!profileId) {
-      setDebts([])
-      setLoading(false)
-      return
-    }
-
+  const fetchDebts = useCallback(async () => {
     try {
       setLoading(true)
+      const supabase = createClient()
+
+      // If no profileId provided, get from auth
+      let id = profileId
+      if (!id) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          setDebts([])
+          setLoading(false)
+          return
+        }
+        id = user.id
+      }
+
       const { data, error: fetchError } = await supabase
         .from('debts')
         .select('*')
-        .eq('profile_id', profileId)
+        .eq('profile_id', id)
+        .order('due_date', { ascending: true })
 
       if (fetchError) throw fetchError
 
@@ -41,16 +54,84 @@ export function useDebts(profileId?: string): UseDebtsReturn {
     } finally {
       setLoading(false)
     }
-  }
+  }, [profileId])
 
   useEffect(() => {
     fetchDebts()
-  }, [profileId])
+  }, [fetchDebts])
+
+  const addDebt = async (debt: Omit<Debt, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const { error: insertError } = await supabase
+        .from('debts')
+        .insert([
+          {
+            ...debt,
+            profile_id: user.id,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ])
+
+      if (insertError) throw insertError
+      await fetchDebts()
+    } catch (err: any) {
+      console.error('Error adding debt:', err)
+      throw err
+    }
+  }
+
+  const updateDebt = async (id: string, debt: Partial<Debt>) => {
+    try {
+      const supabase = createClient()
+      const { error: updateError } = await supabase
+        .from('debts')
+        .update({
+          ...debt,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+
+      if (updateError) throw updateError
+      await fetchDebts()
+    } catch (err: any) {
+      console.error('Error updating debt:', err)
+      throw err
+    }
+  }
+
+  const deleteDebt = async (id: string) => {
+    try {
+      const supabase = createClient()
+      const { error: deleteError } = await supabase
+        .from('debts')
+        .delete()
+        .eq('id', id)
+
+      if (deleteError) throw deleteError
+      await fetchDebts()
+    } catch (err: any) {
+      console.error('Error deleting debt:', err)
+      throw err
+    }
+  }
+
+  const getTotalBalance = (): number => {
+    return debts.reduce((sum, debt) => sum + (debt.remaining_balance || 0), 0)
+  }
 
   return {
     debts,
     loading,
     error,
     refetch: fetchDebts,
+    addDebt,
+    updateDebt,
+    deleteDebt,
+    getTotalBalance,
   }
 }
