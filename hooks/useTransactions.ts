@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase/client'
+import { useEffect, useState, useCallback } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import type { Transaction } from '@/types'
 
 interface UseTransactionsReturn {
@@ -21,19 +21,27 @@ export function useTransactions(profileId?: string): UseTransactionsReturn {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
-  const fetchTransactions = async () => {
-    if (!profileId) {
-      setTransactions([])
-      setLoading(false)
-      return
-    }
-
+  const fetchTransactions = useCallback(async () => {
     try {
       setLoading(true)
+      const supabase = createClient()
+
+      // If no profileId provided, get from auth
+      let id = profileId
+      if (!id) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          setTransactions([])
+          setLoading(false)
+          return
+        }
+        id = user.id
+      }
+
       const { data, error: fetchError } = await supabase
         .from('transactions')
         .select('*')
-        .eq('profile_id', profileId)
+        .eq('profile_id', id)
         .order('date', { ascending: false })
 
       if (fetchError) throw fetchError
@@ -47,21 +55,24 @@ export function useTransactions(profileId?: string): UseTransactionsReturn {
     } finally {
       setLoading(false)
     }
-  }
+  }, [profileId])
 
   useEffect(() => {
     fetchTransactions()
-  }, [profileId])
+  }, [fetchTransactions])
 
   const addTransaction = async (transaction: Omit<Transaction, 'id' | 'created_at'>) => {
-    if (!profileId) throw new Error('No profile ID')
     try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
       const { error: insertError } = await supabase
         .from('transactions')
         .insert([
           {
             ...transaction,
-            profile_id: profileId,
+            profile_id: user.id,
             created_at: new Date().toISOString(),
           },
         ])
@@ -76,9 +87,13 @@ export function useTransactions(profileId?: string): UseTransactionsReturn {
 
   const updateTransaction = async (id: string, transaction: Partial<Transaction>) => {
     try {
+      const supabase = createClient()
       const { error: updateError } = await supabase
         .from('transactions')
-        .update(transaction)
+        .update({
+          ...transaction,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', id)
 
       if (updateError) throw updateError
@@ -91,6 +106,7 @@ export function useTransactions(profileId?: string): UseTransactionsReturn {
 
   const deleteTransaction = async (id: string) => {
     try {
+      const supabase = createClient()
       const { error: deleteError } = await supabase
         .from('transactions')
         .delete()
