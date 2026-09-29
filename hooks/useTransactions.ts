@@ -26,7 +26,7 @@ export function useTransactions(profileId?: string): UseTransactionsReturn {
       setLoading(true)
       const supabase = createClient()
 
-      // If no profileId provided, get from auth
+      // Get user if profileId not provided
       let id = profileId
       if (!id) {
         const { data: { user } } = await supabase.auth.getUser()
@@ -36,6 +36,13 @@ export function useTransactions(profileId?: string): UseTransactionsReturn {
           return
         }
         id = user.id
+      }
+
+      // Only fetch if we have a valid ID
+      if (!id) {
+        setTransactions([])
+        setLoading(false)
+        return
       }
 
       const { data, error: fetchError } = await supabase
@@ -58,8 +65,11 @@ export function useTransactions(profileId?: string): UseTransactionsReturn {
   }, [profileId])
 
   useEffect(() => {
-    fetchTransactions()
-  }, [fetchTransactions])
+    // Only fetch if we have a profileId or it's explicitly undefined (meaning use auth)
+    if (profileId || profileId === undefined) {
+      fetchTransactions()
+    }
+  }, [fetchTransactions, profileId])
 
   const addTransaction = async (transaction: Omit<Transaction, 'id' | 'created_at'>) => {
     try {

@@ -26,7 +26,7 @@ export function useDebts(profileId?: string): UseDebtsReturn {
       setLoading(true)
       const supabase = createClient()
 
-      // If no profileId provided, get from auth
+      // Get user if profileId not provided
       let id = profileId
       if (!id) {
         const { data: { user } } = await supabase.auth.getUser()
@@ -36,6 +36,13 @@ export function useDebts(profileId?: string): UseDebtsReturn {
           return
         }
         id = user.id
+      }
+
+      // Only fetch if we have a valid ID
+      if (!id) {
+        setDebts([])
+        setLoading(false)
+        return
       }
 
       const { data, error: fetchError } = await supabase
@@ -58,8 +65,11 @@ export function useDebts(profileId?: string): UseDebtsReturn {
   }, [profileId])
 
   useEffect(() => {
-    fetchDebts()
-  }, [fetchDebts])
+    // Only fetch if we have a profileId
+    if (profileId || profileId === undefined) {
+      fetchDebts()
+    }
+  }, [fetchDebts, profileId])
 
   const addDebt = async (debt: Omit<Debt, 'id' | 'created_at'>) => {
     try {
