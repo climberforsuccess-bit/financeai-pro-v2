@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import { supabase } from '@/lib/supabase/client'
 
 export default function SignupPage() {
   const router = useRouter()
+  const locale = useLocale()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -29,7 +31,7 @@ export default function SignupPage() {
     setLoading(true)
 
     try {
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
       })
@@ -39,7 +41,26 @@ export default function SignupPage() {
         return
       }
 
-      router.push('/es/auth/login')
+      if (data.user) {
+        // Crea perfil en la tabla profiles
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              user_id: data.user.id,
+              email: email,
+              created_at: new Date(),
+            },
+          ])
+
+        if (profileError) {
+          console.error('Profile creation error:', profileError)
+          // No bloquea el flujo, solo registra
+        }
+      }
+
+      // Redirige a login DESPUÉS de crear todo
+      router.push(`/${locale}/auth/login?success=true`)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -128,7 +149,7 @@ export default function SignupPage() {
 
         <p className="mt-2 text-center text-sm text-gray-600">
           ¿Ya tienes cuenta?{' '}
-          <a href="/es/auth/login" className="font-medium text-blue-600 hover:text-blue-500">
+          <a href={`/${locale}/auth/login`} className="font-medium text-blue-600 hover:text-blue-500">
             Inicia sesión
           </a>
         </p>
