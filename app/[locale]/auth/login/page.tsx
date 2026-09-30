@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import { supabase } from '@/lib/supabase/client'
 
 export default function LoginPage() {
   const router = useRouter()
+  const locale = useLocale()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -27,7 +29,7 @@ export default function LoginPage() {
         return
       }
 
-      router.push('/es/dashboard')
+      router.push(`/${locale}/dashboard`)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -43,7 +45,7 @@ export default function LoginPage() {
       const { error: signInError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/${locale}/auth/callback`,
         },
       })
 
@@ -140,7 +142,7 @@ export default function LoginPage() {
 
         <p className="mt-2 text-center text-sm text-gray-600">
           ¿No tienes cuenta?{' '}
-          <a href="/es/auth/signup" className="font-medium text-blue-600 hover:text-blue-500">
+          <a href={`/${locale}/auth/signup`} className="font-medium text-blue-600 hover:text-blue-500">
             Regístrate
           </a>
         </p>
