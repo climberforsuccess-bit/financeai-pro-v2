@@ -29,7 +29,7 @@ export default function SignupPage() {
     setLoading(true)
 
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
       })
@@ -37,24 +37,6 @@ export default function SignupPage() {
       if (signUpError) {
         setError(signUpError.message)
         return
-      }
-
-      if (data.user) {
-        // Crear el profile en la tabla profiles
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            full_name: email.split('@')[0],
-            country: 'us',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-
-        if (profileError) {
-          setError(`Error al crear perfil: ${profileError.message}`)
-          return
-        }
       }
 
       router.push('/es/auth/login')
