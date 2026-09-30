@@ -31,7 +31,7 @@ export default function SignupPage() {
     setLoading(true)
 
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
       })
@@ -41,26 +41,8 @@ export default function SignupPage() {
         return
       }
 
-      if (data.user) {
-        // Crea perfil en la tabla profiles
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              user_id: data.user.id,
-              email: email,
-              created_at: new Date(),
-            },
-          ])
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError)
-          // No bloquea el flujo, solo registra
-        }
-      }
-
-      // Redirige a login DESPUÉS de crear todo
-      router.push(`/${locale}/auth/login?success=true`)
+      // El trigger automáticamente crea el perfil
+      router.push(`/${locale}/auth/login?success=signup`)
     } catch (err: any) {
       setError(err.message)
     } finally {
