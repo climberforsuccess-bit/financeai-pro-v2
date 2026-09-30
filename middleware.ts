@@ -9,12 +9,10 @@ const intlMiddleware = createMiddleware({
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
-  // Si es raíz, redirige a /es
   if (pathname === '/') {
     return NextResponse.redirect(new URL('/es', request.url))
   }
 
-  // Rutas públicas (no requieren autenticación)
   const publicRoutes = [
     '/es/auth/login',
     '/es/auth/signup',
@@ -32,10 +30,12 @@ export function middleware(request: NextRequest) {
     return intlMiddleware(request)
   }
 
-  // Para rutas protegidas, verifica cookies de sesión
-  const sessionCookie = request.cookies.get('sb-auth-token')
+  // Busca cualquier cookie de sesión de Supabase
+  const hasSessionCookie = Array.from(request.cookies.entries()).some(
+    ([key]) => key.includes('auth-token') || key.includes('auth_session')
+  )
 
-  if (!sessionCookie) {
+  if (!hasSessionCookie) {
     return NextResponse.redirect(new URL('/es/auth/login', request.url))
   }
 
