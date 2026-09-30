@@ -31,7 +31,8 @@ export default function SignupPage() {
     setLoading(true)
 
     try {
-      const { error: signUpError } = await supabase.auth.signUp({
+      // 1. Crear el usuario
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
       })
@@ -41,8 +42,19 @@ export default function SignupPage() {
         return
       }
 
-      // El trigger automáticamente crea el perfil
-      router.push(`/${locale}/auth/login?success=signup`)
+      // 2. IMPORTANTE: Iniciar sesión inmediatamente
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (signInError) {
+        setError(signInError.message)
+        return
+      }
+
+      // 3. El trigger ya creó el perfil, así que redirige al dashboard
+      router.push(`/${locale}/dashboard`)
     } catch (err: any) {
       setError(err.message)
     } finally {
